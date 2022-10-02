@@ -13,7 +13,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([])
   const [message, setMessage] = useState('')
   const lastMessageRef = useRef(null)
-  const ENDPOINT = process.env.SERVER_HOST;
+  const ENDPOINT = import.meta.env.SERVER_HOST;
   // const chatDocRef = doc(db, 'chats', idUser);
 
   useEffect(() => {
