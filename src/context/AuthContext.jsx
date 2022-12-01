@@ -9,8 +9,11 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  updateProfile } from 'firebase/auth'
-import { authentication } from '../config/firebase-config'
+  updateProfile,
+  signOut 
+} from 'firebase/auth'
+import toast, { Toaster } from 'react-hot-toast'
+import { authentication, createUserDoc } from '../config/firebase-config'
 
 const AuthContext = createContext();
 
@@ -32,7 +35,6 @@ export function AuthContextProvider({ children }) {
           if(cred){
             setAuth(true);
             window.localStorage.setItem('auth', 'true');
-            window.localStorage.setItem('name', authentication.currentUser.displayName);
             cred.getIdToken().then((token) => {
               setToken(token);
               setIdUser(authentication.currentUser.uid)
@@ -44,39 +46,119 @@ export function AuthContextProvider({ children }) {
 
     const loginWithGoogle = () => {
         const provider = new GoogleAuthProvider();
-        signInWithPopup(authentication, provider)
-        .then((cred) => {
-          if(cred){
-            setAuth(true);
-            window.localStorage.setItem('auth', 'true');
-            }
+        provider.setCustomParameters({
+          prompt: "select_account"
         });
+
+        toast.promise(
+          signInWithPopup(authentication, provider),
+          {
+            loading: 'Proses Autentikasi...',
+            success: (cred) => {
+              if(cred){
+                setAuth(true);
+                window.localStorage.setItem('auth', 'true');
+                window.localStorage.setItem('name', authentication.currentUser.displayName);
+                createUserDoc(cred.user);
+              }
+              return 'Autentikasi Berhasil'
+            },
+            error: (err) => {
+              console.log(err)
+              if(err.code == "auth/user-not-found"){
+                return 'User Belum Terdaftar!'
+              }
+  
+              return 'Terjadi Kesalahan. Tunggu Beberapa saat lagi!'
+            }
+          }
+        )
     };
 
-    const login = () => {
-      signInWithEmailAndPassword(authentication, email, password)
-      .then((cred) => {
-        if(cred){
-          setAuth(true);
-          window.localStorage.setItem('auth', 'true');
-        }
-      }).catch((err) => (
-        alert(err.message)
-      ));
-    }
     
-    const register = () => {
-      if (!name) alert("Please enter name");
-      createUserWithEmailAndPassword(authentication, email, password)
-      .then((cred) => {
-        if(cred){
-          setAuth(true);
-          window.localStorage.setItem('auth', 'true');
-          updateProfile(authentication.currentUser, name)
+
+    const login = () => {
+      toast.promise(
+        signInWithEmailAndPassword(authentication, email, password),
+        {
+          loading: 'Proses Autentikasi...',
+          success: (cred) => {
+            if(cred){
+              setAuth(true);
+              window.localStorage.setItem('auth', 'true');
+              window.localStorage.setItem('name', authentication.currentUser.displayName);
+            }
+
+            return 'Autentikasi Berhasil'
+          },
+          error: (err) => {
+            if(err.code == "auth/user-not-found"){
+              return 'User Belum Terdaftar!'
+            }
+            
+            if(err.code == "auth/invalid-email"){
+              return 'Pastikan Email dan Password Valid'
+            }
+
+            return 'Terjadi Kesalahan. Tunggu Beberapa saat lagi!'
           }
-      }).catch((err) => (
-        alert(err.message)
-      ));
+        }
+      );
+    }
+
+    const register = () => {
+      if (!name) toast.error("Masukan Nama!");
+
+      toast.promise(
+        createUserWithEmailAndPassword(authentication, email, password),
+        {
+          loading: 'Proses Register...',
+          success: (cred) => {
+            if(cred){
+              setAuth(true);
+              window.localStorage.setItem('auth', 'true');
+              window.localStorage.setItem('name', name);
+              updateProfile(authentication.currentUser, { displayName: name});
+              createUserDoc(cred.user, { displayName: name});
+            }
+            return 'Register Akun Berhasil'
+          },
+          error: (err) => {
+            if(err.code == "auth/email-already-exists"){
+              return 'Akun sudah Pernah Terdaftar, Silahkan Login!'
+            }
+
+            if(err.code == "auth/invalid-email"){
+              return 'Pastikan Email dan Password Valid'
+            }
+
+            return 'Terjadi Kesalahan. Tunggu Beberapa saat lagi!'
+          }
+        }
+
+      );
+    }
+
+    const handleLeaveChat = () => {
+      window.localStorage.removeItem("auth")
+      window.localStorage.removeItem('name');
+      window.localStorage.removeItem('vhibtx_tken');
+      window.localStorage.removeItem('chats');
+
+      toast.promise(
+        signOut(authentication),
+        {
+          loading: 'Proses Sign Out...',
+          success: () => {
+            return 'Sign Out Berhasil'
+          },
+          error: (err) => {
+            return `Terjadi Kesalahan. Tunggu Beberapa saat lagi! ${err.message}`
+          }
+        }
+      )
+
+      window.location.reload()
     }
 
     const value = {
@@ -92,11 +174,13 @@ export function AuthContextProvider({ children }) {
         email,
         setPassword,
         password,
-        idUser
+        idUser,
+        handleLeaveChat
     }
 
     return (
         <AuthContext.Provider value={value}>
+            <Toaster />
             {children}
         </AuthContext.Provider>
     )

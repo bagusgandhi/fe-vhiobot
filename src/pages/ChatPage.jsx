@@ -19,36 +19,64 @@ const ChatPage = () => {
     socket = io(ENDPOINT, {
       auth: {
           token,
+          name: window.localStorage.getItem('name')
       },
       transports: ["websocket"]
       
     });
+
     socket.emit('join') 
 
     const getAllHistory = async () => {
       const messagesRef = collection(doc(db, "chats", idUser ), 'messages' );
       const q = query(messagesRef, orderBy("timestamp", "asc"));
       const data = await getDocs(q);
-      setMessages(data.docs.map((doc) => (doc.data())));
+      return data;
+      // console.log(data.docs)
     }
-  
+    
     getAllHistory()
-      .catch(err => err.message);
+    .then((data) => {
+      // setMessages(data.docs.map((doc) => (doc.data())));
+      window.localStorage.setItem('chats', JSON.stringify(data.docs.map((doc) => (doc.data()))));
+      setMessages(JSON.parse(window.localStorage.getItem('chats')));
+      // setMessages(window.localStorage.getItem('name'));
+      // console.log('test')
+    })
+    .catch(err => err.message);
+
   },[ENDPOINT]);
 
-
+  
   useEffect(() => {
-
+    // console.log(JSON.parse(window.localStorage.getItem('chats')))
+    
     socket.on('message', msg => {
-      setMessages(messages => [...messages, msg])
+      // console.log(messages);
+      const oldMsg = JSON.parse(window.localStorage.getItem('chats'));
+      window.localStorage.setItem('chats', JSON.stringify([...oldMsg, msg]));
+      
+      setMessages(JSON.parse(window.localStorage.getItem('chats')));
+      // setMessages((message) => [...message, msg])
+      // console.log(messages)
 
+      // if(window.localStorage.getItem('chats') == []){
+      //   console.log(messages)
+      // } 
+      
+      // else {
+      
+      // }
+      
       const addHistory = async (msg) => {
         const messagesRef = collection(doc(db, "chats", idUser ), 'messages' );
         await addDoc(messagesRef, msg);
       }
-
+      
       addHistory({...msg, timestamp: serverTimestamp()})
-        .catch(err => err.message);
+      .catch(err => err.message);
+      
+      // setMessages(window.localStorage.getItem('chats'))
     })
 
   },[]);

@@ -1,20 +1,14 @@
 import React from 'react'
-import { signOut } from 'firebase/auth'
-import { authentication } from '../config/firebase-config'
+import { useAuth } from '../context/AuthContext'
 import Vhiobot from '../assets/icon-vhiobot.svg'
 
 
 export default function ChatBody({ messages, lastMessageRef }){ 
-  const handleLeaveChat = () => {
-    localStorage.removeItem("auth")
-    signOut(authentication);
-    window.localStorage.removeItem('name');
-    window.localStorage.removeItem('vhibtx_tken');
-    window.location.reload()
-  }
+
+  const { handleLeaveChat } = useAuth()
   
   return (
-    <div className='w-full max-w-xl mx-auto h-screen overflow-y-auto'>
+    <div className='w-full max-w-xl mx-auto h-screen overflow-y-auto msg-body'>
       {/* header */}
       <div className='fixed top-0 bg-white w-full md:max-w-xl rounded-xl p-6 flex justify-between items-center'>
           <div className='flex gap gap-2 items-center'>
@@ -28,7 +22,7 @@ export default function ChatBody({ messages, lastMessageRef }){
 
       {/* body */}
       <div className='py-28'>
-          { messages.map((message, i) => (
+          { messages?.map((message, i) => (
             // cheks message name
             message.name === localStorage.getItem('name') ? (
               // show sender message

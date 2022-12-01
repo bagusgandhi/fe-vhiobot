@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore"
+import { doc, getDoc, getFirestore, setDoc } from "firebase/firestore"
 // import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -19,3 +19,31 @@ const db = getFirestore(app);
 const authentication = getAuth(app);
 export { authentication, db }
 // const analytics = getAnalytics(app);
+
+
+export const createUserDoc = async (userAuth, additionalInformation = {}) => {
+  if(!userAuth) return;
+
+  const userDocRef = doc(db, "users", userAuth.uid);
+
+  const userSnapshot = await getDoc(userDocRef);
+
+  if(!userSnapshot.exists()){
+    const { displayName, email } = userAuth;
+    const createdAt = new Date();
+
+    try {
+      await setDoc(userDocRef, {
+        displayName,
+        email,
+        createdAt,
+        role: 'users',
+        ...additionalInformation
+      });
+    } catch(err){
+      console.log(err.message);
+    }
+  }
+
+  return userDocRef;
+}

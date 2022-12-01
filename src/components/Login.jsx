@@ -7,7 +7,6 @@ import Google from '../assets/google.svg'
 export default function Login(){
     const { loginWithGoogle, login, email, password, setEmail, setPassword } = useAuth();
 
-
     return (
         <>
             <form>
@@ -17,6 +16,7 @@ export default function Login(){
                   name="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
+                  required
                 />
                 <Input 
                   placeholder="Password" 
@@ -24,6 +24,7 @@ export default function Login(){
                   name="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  required
                 /> 
                 <Button
                   type="button"
